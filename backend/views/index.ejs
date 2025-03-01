@@ -5,529 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>FilamentDry - Smart Filament Drying Monitor</title>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" rel="stylesheet">
-    <style>
-        :root {
-            --primary: #3498db;
-            --secondary: #2ecc71;
-            --dark: #2c3e50;
-            --light: #ecf0f1;
-            --accent: #e74c3c;
-            --gradient-start: #3498db;
-            --gradient-end: #2ecc71;
-        }
-        
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-        }
-        
-        body {
-            background-color: var(--light);
-            color: var(--dark);
-            overflow-x: hidden;
-        }
-        
-        .container {
-            max-width: 1200px;
-            margin: 0 auto;
-            padding: 0 20px;
-        }
-        
-        /* Header */
-        header {
-            background: linear-gradient(135deg, var(--gradient-start), var(--gradient-end));
-            color: white;
-            padding: 1rem 0;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-        }
-        
-        nav {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-        
-        .logo {
-            display: flex;
-            align-items: center;
-            font-size: 1.8rem;
-            font-weight: 700;
-        }
-        
-        .logo i {
-            margin-right: 10px;
-            font-size: 2rem;
-        }
-        
-        .nav-links {
-            padding-top: 1.5rem;
-            display: flex;
-            list-style: none;
-        }
-        
-        .nav-links li {
-            margin-left: 2rem;
-        }
-        
-        .nav-links a {
-            color: white;
-            
-            text-decoration: none;
-            font-weight: 500;
-            transition: all 0.3s ease;
-        }
-        
-        .nav-links a:hover {
-            color: var(--dark);
-        }
-        
-        .dashboard-btn {
-            background-color: white;
-            color: var(--primary);
-            border: none;
-            padding: 0.7rem 1.5rem;
-            margin-bottom: 1rem;
-            border-radius: 30px;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            text-decoration: none;
-            display: inline-block;
-        }
-        
-        .dashboard-btn:hover {
-            background-color: var(--dark);
-            color: white;
-            transform: translateY(-3px);
-            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1);
-        }
-        
-        /* Hero Section */
-        .hero {
-            padding: 5rem 0;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-        }
-        
-        .hero-content {
-            flex: 1;
-            padding-right: 2rem;
-        }
-        
-        .hero-title {
-            font-size: 3rem;
-            margin-bottom: 1.5rem;
-            line-height: 1.2;
-            color: var(--dark);
-        }
-        
-        .hero-subtitle {
-            font-size: 1.2rem;
-            margin-bottom: 2rem;
-            color: #555;
-            line-height: 1.6;
-        }
-        
-        .hero-image {
-            flex: 1;
-            position: relative;
-        }
-        
-        .hero-image img {
-            width: 100%;
-            border-radius: 10px;
-            box-shadow: 0 15px 30px rgba(0, 0, 0, 0.1);
-        }
-        
-        /* Features */
-        .features {
-            background-color: white;
-            padding: 5rem 0;
-        }
-        
-        .section-title {
-            text-align: center;
-            font-size: 2.5rem;
-            margin-bottom: 3rem;
-            color: var(--dark);
-        }
-        
-        .features-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-            gap: 2rem;
-        }
-        
-        .feature-card {
-            background: white;
-            border-radius: 10px;
-            padding: 2rem;
-            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.05);
-            transition: all 0.3s ease;
-        }
-        
-        .feature-card:hover {
-            transform: translateY(-10px);
-            box-shadow: 0 15px 30px rgba(0, 0, 0, 0.1);
-        }
-        
-        .feature-icon {
-            width: 70px;
-            height: 70px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            background: linear-gradient(135deg, var(--gradient-start), var(--gradient-end));
-            color: white;
-            font-size: 2rem;
-            border-radius: 50%;
-            margin-bottom: 1.5rem;
-        }
-        
-        .feature-title {
-            font-size: 1.5rem;
-            margin-bottom: 1rem;
-            color: var(--dark);
-        }
-        
-        .feature-desc {
-            color: #555;
-            line-height: 1.6;
-        }
-        
-        /* How It Works */
-        .how-it-works {
-            padding: 5rem 0;
-            background-color: #f9f9f9;
-        }
-        
-        .steps {
-            display: flex;
-            justify-content: space-between;
-            position: relative;
-            margin-top: 3rem;
-        }
-        
-        .steps::before {
-            content: '';
-            position: absolute;
-            top: 50px;
-            left: 0;
-            width: 100%;
-            height: 3px;
-            background: linear-gradient(90deg, var(--gradient-start), var(--gradient-end));
-            z-index: 1;
-        }
-        
-        .step {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            position: relative;
-            z-index: 2;
-            width: 22%;
-        }
-        
-        .step-number {
-            width: 60px;
-            height: 60px;
-            border-radius: 50%;
-            background: linear-gradient(135deg, var(--gradient-start), var(--gradient-end));
-            color: white;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 1.5rem;
-            font-weight: 600;
-            margin-bottom: 1.5rem;
-            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
-        }
-        
-        .step-title {
-            font-size: 1.2rem;
-            margin-bottom: 0.5rem;
-            text-align: center;
-            color: var(--dark);
-        }
-        
-        .step-desc {
-            text-align: center;
-            color: #555;
-            font-size: 0.9rem;
-        }
-        
-        /* CTA Section */
-        .cta {
-            padding: 5rem 0;
-            background: linear-gradient(135deg, var(--gradient-start), var(--gradient-end));
-            color: white;
-            text-align: center;
-        }
-        
-        .cta-title {
-            font-size: 2.5rem;
-            margin-bottom: 1.5rem;
-        }
-        
-        .cta-subtitle {
-            font-size: 1.2rem;
-            margin-bottom: 2.5rem;
-            max-width: 800px;
-            margin-left: auto;
-            margin-right: auto;
-        }
-        
-        .cta-buttons {
-            display: flex;
-            justify-content: center;
-            gap: 1.5rem;
-        }
-        
-        .secondary-btn {
-            background-color: transparent;
-            color: white;
-            border: 2px solid white;
-            padding: 0.7rem 1.5rem;
-            border-radius: 30px;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            text-decoration: none;
-        }
-        
-        .secondary-btn:hover {
-            background-color: white;
-            color: var(--primary);
-        }
-        
-        /* Stats Section */
-        .stats {
-            padding: 5rem 0;
-            background-color: white;
-        }
-        
-        .stats-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 2rem;
-            text-align: center;
-        }
-        
-        .stat-item {
-            padding: 2rem;
-        }
-        
-        .stat-number {
-            font-size: 3rem;
-            font-weight: 700;
-            margin-bottom: 1rem;
-            background: linear-gradient(135deg, var(--gradient-start), var(--gradient-end));
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-        }
-        
-        .stat-label {
-            color: #555;
-            font-size: 1.1rem;
-        }
-        
-        /* Testimonials */
-        .testimonials {
-            padding: 5rem 0;
-            background-color: #f9f9f9;
-        }
-        
-        .testimonial-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-            gap: 2rem;
-        }
-        
-        .testimonial-card {
-            background: white;
-            border-radius: 10px;
-            padding: 2rem;
-            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.05);
-        }
-        
-        .testimonial-text {
-            font-style: italic;
-            margin-bottom: 1.5rem;
-            color: #555;
-            line-height: 1.6;
-        }
-        
-        .testimonial-author {
-            display: flex;
-            align-items: center;
-        }
-        
-        .author-avatar {
-            width: 50px;
-            height: 50px;
-            border-radius: 50%;
-            overflow: hidden;
-            margin-right: 1rem;
-            background-color: #ddd;
-        }
-        
-        .author-name {
-            font-weight: 600;
-            color: var(--dark);
-        }
-        
-        .author-title {
-            font-size: 0.9rem;
-            color: #777;
-        }
-        
-        /* Footer */
-        footer {
-            background-color: var(--dark);
-            color: white;
-            padding: 4rem 0 2rem;
-        }
-        
-        .footer-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 2rem;
-            margin-bottom: 3rem;
-        }
-        
-        .footer-title {
-            font-size: 1.2rem;
-            margin-bottom: 1.5rem;
-            color: white;
-        }
-        
-        .footer-links {
-            list-style: none;
-        }
-        
-        .footer-links li {
-            margin-bottom: 0.8rem;
-        }
-        
-        .footer-links a {
-            color: #bbb;
-            text-decoration: none;
-            transition: color 0.3s ease;
-        }
-        
-        .footer-links a:hover {
-            color: white;
-        }
-        
-        .social-links {
-            display: flex;
-            gap: 1rem;
-        }
-        
-        .social-link {
-            width: 40px;
-            height: 40px;
-            border-radius: 50%;
-            background-color: rgba(255, 255, 255, 0.1);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            transition: all 0.3s ease;
-        }
-        
-        .social-link:hover {
-            background-color: white;
-            color: var(--dark);
-        }
-        
-        .footer-bottom {
-            text-align: center;
-            padding-top: 2rem;
-            border-top: 1px solid rgba(255, 255, 255, 0.1);
-            color: #bbb;
-        }
-        
-        /* Dashboard Button Pulse Animation */
-        @keyframes pulse {
-            0% {
-                box-shadow: 0 0 0 0 rgba(46, 204, 113, 0.7);
-            }
-            70% {
-                box-shadow: 0 0 0 15px rgba(46, 204, 113, 0);
-            }
-            100% {
-                box-shadow: 0 0 0 0 rgba(46, 204, 113, 0);
-            }
-        }
-        
-        .pulse {
-            animation: pulse 2s infinite;
-        }
-        
-        /* Media Queries */
-        @media screen and (max-width: 992px) {
-            .hero {
-                flex-direction: column;
-            }
-            
-            .hero-content {
-                padding-right: 0;
-                margin-bottom: 3rem;
-                order: 2;
-            }
-            
-            .hero-image {
-                order: 1;
-                margin-bottom: 2rem;
-            }
-            
-            .steps {
-                flex-direction: column;
-                align-items: center;
-            }
-            
-            .steps::before {
-                display: none;
-            }
-            
-            .step {
-                width: 100%;
-                margin-bottom: 2rem;
-            }
-        }
-        
-        @media screen and (max-width: 768px) {
-            nav {
-                flex-direction: column;
-            }
-            
-            .nav-links {
-                margin-top: 1rem;
-            }
-            
-            .nav-links li {
-                margin: 0 0.8rem;
-            }
-            
-            .hero-title {
-                font-size: 2.5rem;
-            }
-            
-            .cta-buttons {
-                flex-direction: column;
-                align-items: center;
-                gap: 1rem;
-            }
-            
-            .dashboard-btn, .secondary-btn {
-                width: 100%;
-                max-width: 300px;
-            }
-        }
-    </style>
+    <link rel="stylesheet" href="/css/index.css">
 </head>
 <body>
     <!-- Header -->
@@ -541,8 +19,8 @@
                 <ul class="nav-links">
                     <li><a href="#features">Features</a></li>
                     <li><a href="#how-it-works">How It Works</a></li>
-                    <li><a href="#testimonials">Testimonials</a></li>
-                    <li><a href="/dashboard" class="dashboard-btn pulse">Access Dashboard</a></li>
+                    <li><a href="#team">Our Team</a></li>
+                    <li><a href="/dashboard" class="dashboard-btn pulse">Dashboard</a></li>
                 </ul>
             </nav>
         </div>
@@ -672,43 +150,42 @@
             <h2 class="cta-title">Ready to Improve Your 3D Printing?</h2>
             <p class="cta-subtitle">Access your dashboard now to monitor your filament drying in real-time and ensure perfect printing results.</p>
             <div class="cta-buttons">
-                <a href="/dashboard" class="dashboard-btn">Go to Dashboard</a>
-                <a href="#contact" class="secondary-btn">Learn More</a>
+                <a href="/dashboard" class="dashboard-btn pulse">Go to Dashboard</a>
             </div>
         </div>
     </section>
 
-    <!-- Testimonials -->
-    <section class="testimonials" id="testimonials">
+    <!-- team -->
+    <section class="team" id="team">
         <div class="container">
-            <h2 class="section-title">What Our Users Say</h2>
-            <div class="testimonial-grid">
-                <div class="testimonial-card">
-                    <p class="testimonial-text">"Since using FilamentDry, my prints have been more consistent and I've had far fewer failures due to moisture absorption. The dashboard is intuitive and the alerts are extremely helpful."</p>
-                    <div class="testimonial-author">
+            <h2 class="section-title">Our Team</h2>
+            <div class="team-grid">
+                <div class="team-card">
+                    <p class="team-text">"Since using FilamentDry, my prints have been more consistent and I've had far fewer failures due to moisture absorption. The dashboard is intuitive and the alerts are extremely helpful."</p>
+                    <div class="team-author">
                         <div class="author-avatar"></div>
                         <div>
-                            <div class="author-name">Alex Johnson</div>
-                            <div class="author-title">3D Printing Enthusiast</div>
+                            <div class="author-name">Parikshit Pandey</div>
+                            <div class="author-title">Engineering Student</div>
                         </div>
                     </div>
                 </div>
-                <div class="testimonial-card">
-                    <p class="testimonial-text">"The data analytics have helped me optimize my drying cycles for different filament types. I'm saving time and getting better results. Worth every penny!"</p>
-                    <div class="testimonial-author">
+                <div class="team-card">
+                    <p class="team-text">"The data analytics have helped me optimize my drying cycles for different filament types. I'm saving time and getting better results. Worth every penny!"</p>
+                    <div class="team-author">
                         <div class="author-avatar"></div>
                         <div>
-                            <div class="author-name">Maria Rodriguez</div>
-                            <div class="author-title">Professional Maker</div>
+                            <div class="author-name">Soham Khanna</div>
+                            <div class="author-title">Engineering Student</div>
                         </div>
                     </div>
                 </div>
-                <div class="testimonial-card">
-                    <p class="testimonial-text">"As someone who prints with hygroscopic materials like nylon and PETG, this monitor has been a game-changer. I can now ensure my filament is properly dried before starting long prints."</p>
-                    <div class="testimonial-author">
+                <div class="team-card">
+                    <p class="team-text">"As someone who prints with hygroscopic materials like nylon and PETG, this monitor has been a game-changer. I can now ensure my filament is properly dried before starting long prints."</p>
+                    <div class="team-author">
                         <div class="author-avatar"></div>
                         <div>
-                            <div class="author-name">David Chen</div>
+                            <div class="author-name">Sujal Singh</div>
                             <div class="author-title">Engineering Student</div>
                         </div>
                     </div>
@@ -723,7 +200,7 @@
             <div class="footer-grid">
                 <div>
                     <h3 class="footer-title">FilamentDry</h3>
-                    <p>Smart monitoring for 3D printer filament drying, ensuring optimal print quality and filament longevity.</p>
+                    <p>Smart monitoring for 3D printer filament drying, ensuring optimal print quality and filament longevity.</p><br>
                     <div class="social-links">
                         <a href="#" class="social-link"><i class="fab fa-facebook-f"></i></a>
                         <a href="#" class="social-link"><i class="fab fa-twitter"></i></a>
@@ -737,7 +214,7 @@
                         <li><a href="#">Home</a></li>
                         <li><a href="#features">Features</a></li>
                         <li><a href="#how-it-works">How It Works</a></li>
-                        <li><a href="#testimonials">Testimonials</a></li>
+                        <li><a href="#team">Our Team</a></li>
                     </ul>
                 </div>
                 <div>
