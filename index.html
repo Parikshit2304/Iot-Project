@@ -1,0 +1,541 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Filament Dryer Monitor</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.5.1/socket.io.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.7.1/chart.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.29.4/moment.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/tailwindcss/2.2.19/tailwind.min.css"></script>
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/tailwindcss/2.2.19/tailwind.min.css" rel="stylesheet">
+  <style>
+    .sensor-card {
+      transition: all 0.3s ease;
+    }
+    .sensor-card:hover {
+      transform: translateY(-5px);
+      box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+    }
+    .grid-cols-dashboard {
+      grid-template-columns: 1fr 1fr;
+    }
+    @media (max-width: 768px) {
+      .grid-cols-dashboard {
+        grid-template-columns: 1fr;
+      }
+    }
+    /* ESP32 Connection Indicator */
+    .connection-indicator {
+      display: inline-block;
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      margin-right: 8px;
+      background-color: #ef4444; /* Red by default */
+      position: relative;
+    }
+    .connection-indicator.connected {
+      background-color: #10b981; /* Green when connected */
+    }
+    .connection-indicator.connected::after {
+      content: '';
+      position: absolute;
+      top: -4px;
+      left: -4px;
+      right: -4px;
+      bottom: -4px;
+      border-radius: 50%;
+      border: 2px solid #10b981;
+      animation: pulse 1.5s infinite;
+    }
+    @keyframes pulse {
+      0% {
+        transform: scale(0.95);
+        opacity: 0.8;
+      }
+      70% {
+        transform: scale(1.1);
+        opacity: 0.3;
+      }
+      100% {
+        transform: scale(0.95);
+        opacity: 0.8;
+      }
+    }
+  </style>
+</head>
+<body class="bg-gray-100 min-h-screen">
+  <div class="container mx-auto px-4 py-8">
+    <header class="mb-8 flex justify-between items-center">
+      <div>
+        <h1 class="text-3xl font-bold text-gray-800">Filament Dryer Monitor</h1>
+        <p class="text-gray-600">Real-time humidity and temperature monitoring system</p>
+      </div>
+      <div class="flex items-center">
+        <div class="connection-indicator" id="connection-status"></div>
+        <span id="connection-text" class="text-sm font-medium">Disconnected</span>
+      </div>
+    </header>
+
+    <!-- Status Cards -->
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+      <div class="sensor-card bg-white rounded-lg p-6 shadow-md border-l-4 border-blue-500">
+        <h3 class="text-gray-500 text-sm font-medium mb-1">Current Temperature</h3>
+        <div class="flex items-center">
+          <span id="current-temp" class="text-3xl font-bold text-gray-800">--</span>
+          <span class="text-xl ml-1">°C</span>
+        </div>
+        <p class="text-sm text-gray-500 mt-2">Last updated: <span id="temp-updated">--</span></p>
+      </div>
+
+      <div class="sensor-card bg-white rounded-lg p-6 shadow-md border-l-4 border-green-500">
+        <h3 class="text-gray-500 text-sm font-medium mb-1">Current Humidity</h3>
+        <div class="flex items-center">
+          <span id="current-humidity" class="text-3xl font-bold text-gray-800">--</span>
+          <span class="text-xl ml-1">%</span>
+        </div>
+        <p class="text-sm text-gray-500 mt-2">Last updated: <span id="humidity-updated">--</span></p>
+      </div>
+
+      <div class="sensor-card bg-white rounded-lg p-6 shadow-md border-l-4 border-yellow-500">
+        <h3 class="text-gray-500 text-sm font-medium mb-1">Average Temperature</h3>
+        <div class="flex items-center">
+          <span id="avg-temp" class="text-3xl font-bold text-gray-800">--</span>
+          <span class="text-xl ml-1">°C</span>
+        </div>
+        <p class="text-sm text-gray-500 mt-2">Last 24 hours</p>
+      </div>
+
+      <div class="sensor-card bg-white rounded-lg p-6 shadow-md border-l-4 border-purple-500">
+        <h3 class="text-gray-500 text-sm font-medium mb-1">Average Humidity</h3>
+        <div class="flex items-center">
+          <span id="avg-humidity" class="text-3xl font-bold text-gray-800">--</span>
+          <span class="text-xl ml-1">%</span>
+        </div>
+        <p class="text-sm text-gray-500 mt-2">Last 24 hours</p>
+      </div>
+    </div>
+
+    <!-- Charts -->
+    <div class="grid grid-cols-1 lg:grid-cols-dashboard gap-6 mb-8">
+      <div class="bg-white rounded-lg shadow-md p-6">
+        <h2 class="text-lg font-medium text-gray-800 mb-4">Temperature History</h2>
+        <div class="h-64">
+          <canvas id="tempChart"></canvas>
+        </div>
+      </div>
+
+      <div class="bg-white rounded-lg shadow-md p-6">
+        <h2 class="text-lg font-medium text-gray-800 mb-4">Humidity History</h2>
+        <div class="h-64">
+          <canvas id="humidityChart"></canvas>
+        </div>
+      </div>
+    </div>
+
+    <!-- Data Table -->
+    <div class="bg-white rounded-lg shadow-md p-6">
+      <div class="flex flex-col md:flex-row justify-between items-center mb-6">
+        <h2 class="text-lg font-medium text-gray-800 mb-4 md:mb-0">Sensor Data History</h2>
+        <div class="flex flex-col md:flex-row space-y-4 md:space-y-0 md:space-x-4 w-full md:w-auto">
+          <div class="relative flex-grow md:flex-grow-0">
+            <input type="date" id="date-filter" class="w-full md:w-64 px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+          </div>
+          <button id="search-btn" class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg transition-colors">
+            Search
+          </button>
+          <button id="reset-btn" class="bg-gray-200 hover:bg-gray-300 text-gray-800 px-4 py-2 rounded-lg transition-colors">
+            Reset
+          </button>
+        </div>
+      </div>
+
+      <div class="overflow-x-auto">
+        <table class="min-w-full divide-y divide-gray-200">
+          <thead>
+            <tr>
+              <th class="px-6 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Timestamp</th>
+              <th class="px-6 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Temperature (°C)</th>
+              <th class="px-6 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Humidity (%)</th>
+            </tr>
+          </thead>
+          <tbody id="data-table-body" class="bg-white divide-y divide-gray-200">
+            <!-- Data will be inserted here -->
+            <tr>
+              <td colspan="3" class="px-6 py-4 text-center text-gray-500">Loading data...</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      
+      <!-- Pagination -->
+      <div class="flex items-center justify-between pt-4">
+        <div class="flex items-center">
+          <span class="text-sm text-gray-700">
+            Showing
+            <span id="pagination-start">0</span>
+            to
+            <span id="pagination-end">0</span>
+            of
+            <span id="pagination-total">0</span>
+            results
+          </span>
+        </div>
+        <div class="flex space-x-2">
+          <button id="prev-page" class="px-3 py-1 rounded-md bg-gray-200 text-gray-700 hover:bg-gray-300 disabled:opacity-50 disabled:cursor-not-allowed">
+            Previous
+          </button>
+          <button id="next-page" class="px-3 py-1 rounded-md bg-gray-200 text-gray-700 hover:bg-gray-300 disabled:opacity-50 disabled:cursor-not-allowed">
+            Next
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // Connect to Socket.IO server
+    const socket = io();
+    
+    // ESP32 Connection Status Variables
+    let lastDataReceived = null;
+    let connectionTimeout = null;
+    const CONNECTION_TIMEOUT_MS = 5000; // 30 seconds
+    
+    // Chart configuration
+    const tempCtx = document.getElementById('tempChart').getContext('2d');
+    const humidityCtx = document.getElementById('humidityChart').getContext('2d');
+    
+    // Initialize charts
+    const tempChart = new Chart(tempCtx, {
+      type: 'line',
+      data: {
+        labels: [],
+        datasets: [{
+          label: 'Temperature (°C)',
+          data: [],
+          backgroundColor: 'rgba(54, 162, 235, 0.2)',
+          borderColor: 'rgba(54, 162, 235, 1)',
+          borderWidth: 2,
+          tension: 0.3,
+          pointRadius: 2,
+          pointHoverRadius: 5
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        scales: {
+          x: {
+            grid: {
+              display: false
+            }
+          },
+          y: {
+            beginAtZero: false
+          }
+        }
+      }
+    });
+    
+    const humidityChart = new Chart(humidityCtx, {
+      type: 'line',
+      data: {
+        labels: [],
+        datasets: [{
+          label: 'Humidity (%)',
+          data: [],
+          backgroundColor: 'rgba(75, 192, 192, 0.2)',
+          borderColor: 'rgba(75, 192, 192, 1)',
+          borderWidth: 2,
+          tension: 0.3,
+          pointRadius: 2,
+          pointHoverRadius: 5
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        scales: {
+          x: {
+            grid: {
+              display: false
+            }
+          },
+          y: {
+            beginAtZero: false
+          }
+        }
+      }
+    });
+    
+    // Table pagination variables
+    let currentPage = 1;
+    let pageSize = 10;
+    let totalPages = 0;
+    let allData = [];
+    let filteredData = [];
+    
+    // Connection status indicator function
+    function updateConnectionStatus(isConnected) {
+      const statusIndicator = document.getElementById('connection-status');
+      const statusText = document.getElementById('connection-text');
+      
+      if (isConnected) {
+        statusIndicator.classList.add('connected');
+        statusText.textContent = 'ESP32 Connected';
+        statusText.classList.remove('text-red-500');
+        statusText.classList.add('text-green-500');
+      } else {
+        statusIndicator.classList.remove('connected');
+        statusText.textContent = 'ESP32 Disconnected';
+        statusText.classList.remove('text-green-500');
+        statusText.classList.add('text-red-500');
+      }
+    }
+    
+    // Check ESP32 connection status periodically
+    function checkConnectionStatus() {
+      if (lastDataReceived) {
+        const now = new Date();
+        const timeSinceLastData = now - lastDataReceived;
+        
+        // Consider disconnected if no data for 30 seconds
+        if (timeSinceLastData < CONNECTION_TIMEOUT_MS) {
+          updateConnectionStatus(true);
+        } else {
+          updateConnectionStatus(false);
+        }
+      } else {
+        updateConnectionStatus(false);
+      }
+    }
+    
+    // Set initial connection status
+    updateConnectionStatus(false);
+    
+    // Check connection status every 5 seconds
+    setInterval(checkConnectionStatus, 5000);
+    
+    // Update sensor values
+    socket.on('sensorData', function(data) {
+      // Update connection status
+      lastDataReceived = new Date();
+      updateConnectionStatus(true);
+      
+      // Reset connection timeout
+      if (connectionTimeout) {
+        clearTimeout(connectionTimeout);
+      }
+      
+      connectionTimeout = setTimeout(() => {
+        updateConnectionStatus(false);
+      }, CONNECTION_TIMEOUT_MS);
+      
+      // Parse values to ensure they are numbers
+      const temperature = parseFloat(data.temperature);
+      const humidity = parseFloat(data.humidity);
+      
+      // Update current values if they are valid numbers
+      if (!isNaN(temperature)) {
+        document.getElementById('current-temp').textContent = temperature.toFixed(1);
+        document.getElementById('temp-updated').textContent = moment(data.timestamp).format('HH:mm:ss');
+      }
+      
+      if (!isNaN(humidity)) {
+        document.getElementById('current-humidity').textContent = humidity.toFixed(1);
+        document.getElementById('humidity-updated').textContent = moment(data.timestamp).format('HH:mm:ss');
+      }
+      
+      // Update charts if values are valid
+      if (!isNaN(temperature)) {
+        addDataPoint(tempChart, moment(data.timestamp).format('HH:mm:ss'), temperature);
+      }
+      
+      if (!isNaN(humidity)) {
+        addDataPoint(humidityChart, moment(data.timestamp).format('HH:mm:ss'), humidity);
+      }
+      
+      // Add to data array for table
+      allData.unshift(data);
+      if (!filteredData.length) {
+        filteredData = [...allData];
+      }
+      updateTable();
+    });
+    
+    // Receive historical data
+    socket.on('historicalData', function(data) {
+      allData = data;
+      filteredData = [...allData];
+      
+      // If we have data, set connection to true initially
+      if (data.length > 0) {
+        lastDataReceived = new Date();
+        updateConnectionStatus(true);
+        
+        // Set timeout to check connection status after CONNECTION_TIMEOUT_MS
+        if (connectionTimeout) {
+          clearTimeout(connectionTimeout);
+        }
+        
+        connectionTimeout = setTimeout(() => {
+          updateConnectionStatus(false);
+        }, CONNECTION_TIMEOUT_MS);
+      }
+      
+      // Calculate averages
+      const validTemperatures = data
+        .map(item => parseFloat(item.temperature))
+        .filter(temp => !isNaN(temp)); // Filter valid numbers
+
+      const validHumidities = data
+        .map(item => parseFloat(item.humidity))
+        .filter(humidity => !isNaN(humidity)); // Filter valid numbers
+
+      if (validTemperatures.length > 0) {
+        const avgTemp = validTemperatures.reduce((a, b) => a + b, 0) / validTemperatures.length;
+        document.getElementById('avg-temp').textContent = avgTemp.toFixed(1);
+      } else {
+        document.getElementById('avg-temp').textContent = '--'; // Handle empty data
+      }
+
+      if (validHumidities.length > 0) {
+        const avgHumidity = validHumidities.reduce((a, b) => a + b, 0) / validHumidities.length;
+        document.getElementById('avg-humidity').textContent = avgHumidity.toFixed(1);
+      } else {
+        document.getElementById('avg-humidity').textContent = '--'; // Handle empty data
+      }
+      
+      // Update charts with historical data (limited to most recent 20 points)
+      // Make sure we have valid data for charting
+      const recentData = data.slice(0, 20).reverse();
+      
+      tempChart.data.labels = recentData.map(item => moment(item.timestamp).format('HH:mm:ss'));
+      tempChart.data.datasets[0].data = recentData
+        .map(item => parseFloat(item.temperature))
+        .map(temp => isNaN(temp) ? null : temp); // Replace NaN with null for Chart.js
+      tempChart.update();
+      
+      humidityChart.data.labels = recentData.map(item => moment(item.timestamp).format('HH:mm:ss'));
+      humidityChart.data.datasets[0].data = recentData
+        .map(item => parseFloat(item.humidity))
+        .map(humidity => isNaN(humidity) ? null : humidity); // Replace NaN with null for Chart.js
+      humidityChart.update();
+      
+      updateTable();
+    });
+    
+    // Add data point to chart (and limit to 20 points)
+    function addDataPoint(chart, label, value) {
+      if (isNaN(value)) return; // Skip if value is NaN
+      
+      chart.data.labels.push(label);
+      chart.data.datasets[0].data.push(value);
+      
+      if (chart.data.labels.length > 20) {
+        chart.data.labels.shift();
+        chart.data.datasets[0].data.shift();
+      }
+      
+      chart.update();
+    }
+    
+    // Update table with paginated data
+    function updateTable() {
+      const tableBody = document.getElementById('data-table-body');
+      const start = (currentPage - 1) * pageSize;
+      const end = Math.min(start + pageSize, filteredData.length);
+      const pageData = filteredData.slice(start, end);
+      
+      tableBody.innerHTML = '';
+      
+      if (pageData.length === 0) {
+        const row = document.createElement('tr');
+        row.innerHTML = '<td colspan="3" class="px-6 py-4 text-center text-gray-500">No data found</td>';
+        tableBody.appendChild(row);
+      } else {
+        pageData.forEach(item => {
+          const row = document.createElement('tr');
+          row.classList.add('hover:bg-gray-50');
+          
+          // Parse values to ensure they are numbers
+          const temp = parseFloat(item.temperature);
+          const humidity = parseFloat(item.humidity);
+          
+          row.innerHTML = `
+            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${moment(item.timestamp).format('YYYY-MM-DD HH:mm:ss')}</td>
+            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${!isNaN(temp) ? temp.toFixed(1) : '--'}</td>
+            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${!isNaN(humidity) ? humidity.toFixed(1) : '--'}</td>
+          `;
+          tableBody.appendChild(row);
+        });
+      }
+      
+      // Update pagination
+      totalPages = Math.ceil(filteredData.length / pageSize);
+      document.getElementById('pagination-start').textContent = filteredData.length === 0 ? 0 : start + 1;
+      document.getElementById('pagination-end').textContent = end;
+      document.getElementById('pagination-total').textContent = filteredData.length;
+      
+      document.getElementById('prev-page').disabled = currentPage === 1;
+      document.getElementById('next-page').disabled = currentPage >= totalPages;
+    }
+    
+    // Pagination event listeners
+    document.getElementById('prev-page').addEventListener('click', () => {
+      if (currentPage > 1) {
+        currentPage--;
+        updateTable();
+      }
+    });
+    
+    document.getElementById('next-page').addEventListener('click', () => {
+      if (currentPage < totalPages) {
+        currentPage++;
+        updateTable();
+      }
+    });
+    
+    // Search by timestamp - fixed to properly handle date filtering
+    document.getElementById('search-btn').addEventListener('click', () => {
+      const dateFilter = document.getElementById('date-filter').value;
+      
+      if (dateFilter) {
+        // Create date object from the selected date (at 00:00:00)
+        const searchDate = new Date(dateFilter);
+        
+        // Filter data for the specific date
+        filteredData = allData.filter(item => {
+          // Create date object from timestamp
+          const itemDate = new Date(item.timestamp);
+          
+          // Compare year, month, and day
+          return itemDate.getFullYear() === searchDate.getFullYear() &&
+                 itemDate.getMonth() === searchDate.getMonth() &&
+                 itemDate.getDate() === searchDate.getDate();
+        });
+      } else {
+        // No date filter, show all data
+        filteredData = [...allData];
+      }
+      
+      // Reset to first page and update table
+      currentPage = 1;
+      updateTable();
+    });
+    
+    // Reset filter
+    document.getElementById('reset-btn').addEventListener('click', () => {
+      document.getElementById('date-filter').value = '';
+      filteredData = [...allData];
+      currentPage = 1;
+      updateTable();
+    });
+    
+    // Request historical data on page load
+    socket.emit('getHistoricalData');
+  </script>
+</body>
+</html>
